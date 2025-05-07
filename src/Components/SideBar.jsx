@@ -1,7 +1,6 @@
 import React from "react";
-import AggregationSelector from "../Components/AggregationSelector";
+import AggregationSelector from "./AggregationSelector";
 import DragDropArea from "./DrageAndDropArea";
-import "./Sidebar.css";
 
 const Sidebar = ({
   fields,

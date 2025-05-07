@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import Sidebar from "./Components/SideBar";
-import PivotTable from "./Components/PivotTable";
-import FileUpload from "./components/FileUpload";
+import PivotTable from "./components/PivotTable"
+import FileUpload from "./components/FileUpload"
+import Sidebar from "./components/SideBar"
 import "./index.css";
 import "boxicons/css/boxicons.min.css";
+import { useState } from "react";
 
 const App = () => {
   const [data, setData] = useState([]);

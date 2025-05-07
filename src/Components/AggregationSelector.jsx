@@ -1,5 +1,4 @@
 import React from "react";
-import "./AggregationSelector.css";
 
 const AGGREGATIONS = {
   number: ["Sum", "Average", "Min", "Max", "Count"],

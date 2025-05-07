@@ -1,6 +1,6 @@
 import React from "react";
 import { ReactSortable } from "react-sortablejs";
-import "./DragDropArea.css";
+
 
 const DragDropArea = ({ title, items, setItems, renderItem }) => {
   const wrappedItems = items.map((id) => ({ id }));
