@@ -1,48 +1,59 @@
-import React, { useState } from 'react';
-import CsvUploader from './Components/CsvUploader'
-import FieldMapper from './Components/FieldMapper'
-import PivotTable from './Components/PivotTable';
-import './App.css';
+import React, { useState } from "react";
+import Sidebar from "./Components/SideBar";
+import PivotTable from "./Components/PivotTable";
+import FileUpload from "./components/FileUpload";
+import "./index.css";
+import "boxicons/css/boxicons.min.css";
 
-function App() {
+const App = () => {
   const [data, setData] = useState([]);
-  const [headers, setHeaders] = useState([]);
-  const [rowFields, setRowFields] = useState([]);
-  const [columnFields, setColumnFields] = useState([]);
-  const [valueFields, setValueFields] = useState([]);
-
-  function handleDataParsed(parsedData) {
-    setData(parsedData);
-    if (parsedData.length > 0) {
-      setHeaders(Object.keys(parsedData[0])); // Set headers based on CSV data
-    }
-  }
+  const [fields, setFields] = useState([]);
+  const [fieldTypes, setFieldTypes] = useState({});
+  const [rows, setRows] = useState([]);
+  const [columns, setColumns] = useState([]);
+  const [values, setValues] = useState([]);
+  const [fileName, setFileName] = useState(null);
 
   return (
-    <>
-      <div className="app-container">
-        <CsvUploader onDataParsed={handleDataParsed} />
-        <PivotTable
-          headers={headers}
-          data={data}
-          rowFields={rowFields}
-          columnFields={columnFields}
-          valueFields={valueFields}
-        />
-        <FieldMapper
-          headers={headers}
-          rowFields={rowFields}
-          setRowFields={setRowFields}
-          columnFields={columnFields}
-          setColumnFields={setColumnFields}
-          valueFields={valueFields}
-          setValueFields={setValueFields}
+    <div className="main-container">
+      <div className="pivot-table">
+        <h1>Pivot Table</h1>
+
+        <FileUpload
+           data = {data}
+          setData={setData}
+          setFields={setFields}
+          setFieldTypes={setFieldTypes}
+          setRows={setRows}
+          setColumns={setColumns}
+          setValues={setValues}
+          setFileName={setFileName}
+          fileName={fileName}
         />
 
+        {data.length > 0 && (
+          <PivotTable
+            data={data}
+            rows={rows}
+            columns={columns}
+            values={values}
+            fieldTypes={fieldTypes}
+          />
+        )}
       </div>
 
-    </>
+      <Sidebar
+        fields={fields}
+        rows={rows}
+        columns={columns}
+        values={values}
+        setRows={setRows}
+        setColumns={setColumns}
+        setValues={setValues}
+        fieldTypes={fieldTypes}
+      />
+    </div>
   );
-}
+};
 
 export default App;

@@ -1,155 +1,248 @@
-import React, { useState, useEffect } from 'react';
+import React from "react";
 
-function PivotTable({ headers, data, rowFields, columnFields, valueFields }) {
-    // console.log(data, rowFields, columnFields, valueFields);
-    const [tableData, setTableData] = useState([]);
+const aggregators = {
+  Sum: (arr) => arr.reduce((a, b) => a + b, 0),
+  Average: (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0),
+  Min: (arr) => Math.min(...arr),
+  Max: (arr) => Math.max(...arr),
+  Count: (arr) => arr.length,
+};
 
-    useEffect(() => {
+const PivotTable = ({ data, rows, columns, values, fieldTypes }) => {
+  const groupData = () => {
+    const grouped = {};
+    for (const row of data) {
+      const rowKey = rows.map((r) => row[r]);
+      const colKey = columns.map((c) => row[c]).join("|||");
+      const rowKeyStr = rowKey.join("|||");
+      if (!grouped[rowKeyStr]) grouped[rowKeyStr] = { rowKey, cols: {} };
+      if (!grouped[rowKeyStr].cols[colKey]) grouped[rowKeyStr].cols[colKey] = {};
+      for (const { field } of values) {
+        const value = fieldTypes[field] === "number" ? Number(row[field]) : row[field];
+        const cell = grouped[rowKeyStr].cols[colKey];
+        if (!cell[field]) cell[field] = [];
+        cell[field].push(value);
+      }
+    }
+    return grouped;
+  };
 
-        if (rowFields.length === 0 && columnFields.length === 0 && valueFields.length === 0) {
-            // console.log("useEffect called successfully")
+  const grouped = groupData();
+  const rowKeys = Object.keys(grouped);
+  const colKeys = Array.from(
+    new Set(rowKeys.flatMap((rk) => Object.keys(grouped[rk].cols)))
+  ).sort();
 
-            return;
-        }
-        // console.log("This is the data ->" + data);
+  const getAggregatedValue = (values, aggregation) =>
+    aggregators[aggregation](values.filter((v) => typeof v === "number" || aggregation === "Count"));
 
-        transformData();
+  const buildHeaderTree = () => {
+    const tree = {};
+    for (const colKey of colKeys) {
+      const parts = colKey.split("|||");
+      let current = tree;
+      for (const part of parts) {
+        current[part] = current[part] || {};
+        current = current[part];
+      }
+    }
+    return tree;
+  };
 
-        
+  const renderHeaderRows = (node, _depth, maxDepth) => {
+    const rows = Array.from({ length: maxDepth }, () => []);
+    const fillRows = (node, level, colSpanCalc, parentKey = "") => {
+      let totalColSpan = 0;
 
-        function transformData() {
+      for (const key of Object.keys(node)) {
+        const subTree = node[key];
+        const fullKey = parentKey ? `${parentKey}|||${key}` : key;
+        const colSpan = Object.keys(subTree).length
+          ? fillRows(subTree, level + 1, colSpanCalc, fullKey)
+          : values.reduce((acc, v) => acc + v.aggregations.length, 0);
 
-            let rowDataMap = {};
-
-            data.forEach((record) => {
-
-
-                let rowKey = [];
-                let columnKey = [];
-
-                //record is a object we get the key from rowField
-                for (let i = 0; i < rowFields.length; i++) {
-                    // rowKey.push(record.rowFields[i]); --> We can not do like this because we are trying to access a element that does not exit like if the field is 'Employee id' it will throw a error 
-                    rowKey.push(record[rowFields[i]]);
-                }
-                console.log(rowKey);
-
-                //simular Like the row 
-                for (let i = 0; i < columnFields.length; i++) {
-                    columnKey.push(record[columnFields[i]]);
-                }
-
-
-                // console.log("Row key->" + rowKey);
-                // console.log("Column key->" + columnKey);
-
-                // Check the Key isbexit in the column
-
-                // // console.log('This is recod ->' , record);
-                // if(record.ID != 1){
-                //     console.log('This is rowKey ->' , rowDataMap[rowKey][columnKey]);
-                // }
-
-                console.log(rowDataMap);
-
-                // console.log(record);
-                if (!rowDataMap[rowKey]) {
-                    // console.log(rowFields)
-                    rowDataMap[rowKey] = {}; // Initialize with Empty object
-                }
-
-
-                // console.log("Column key is there are not ->" ,rowDataMap[rowKey][columnKey]);
-
-                console.log([columnKey]);
-
-                if (!rowDataMap[rowKey][columnKey]) {
-                    rowDataMap[rowKey][columnKey] = 0; // Initialize with 0
-                }
-
-
-                // console.log("Column key is there value ->" ,rowDataMap[rowKey]);
-                // console.log('This is rowDataMap ->' , rowDataMap);
-
-
-                valueFields.forEach((field) => {
-                    console.log("Value field inside coming");
-                    rowDataMap[rowKey][columnKey] += record[field];
-                });
-                // console.log(tableData[rowKey][columnKey]);
-            });
-
-            setTableData(rowDataMap);
-            // console.log(tableData);
-        };
-
-
-    }, [data, rowFields, columnFields, valueFields]);
-
-
-    function renderTableHeader() {
-
-        const columnHeaders = Object.keys(tableData).reduce((columns, rowKey) => {
-            const keys = Object.keys(tableData[rowKey]);
-            console.log('Keys for rowKey', rowKey, ':', keys);
-        
-            keys.forEach((columnKey) => {
-                if (!columns.includes(columnKey)) {
-                    columns.push(columnKey);
-                }
-            });
-            return columns;
-        }, []);
-        
-        console.log('columnHeaders:', columnHeaders);
-        console.log('columnHeaders[0]:', columnHeaders[0]);
-        
-
-        // console.log(columnHeaders);
-
-        // console.log(columnHeaders[0]);
-
-        return (
-            <thead style={{ color: 'black' }}>
-                {columnFields.map((h, i) => (
-                    <tr key={i}>
-                        <th>{h}</th>
-                        {columnHeaders.map((header, index) => (
-                            <th key={index} >{header}</th>
-                        ))}
-                    </tr>
-                ))}
-            </thead>
+        rows[level].push(
+          <th key={fullKey} colSpan={colSpan} rowSpan={Object.keys(subTree).length ? 1 : maxDepth - level}>
+            {key}
+          </th>
         );
+        totalColSpan += colSpan;
+      }
+
+      return totalColSpan;
     };
 
-    function renderTableBody() {
+    fillRows(node, 0, () => values.reduce((acc, v) => acc + v.aggregations.length, 0));
+    return rows;
+  };
 
-
-        // console.log(Object.keys(tableData));
-
-        return (
-            <tbody style={{ color: 'black' }}>
-                {Object.keys(tableData).map((rowKey) => (
-                    <tr key={rowKey}>
-                        <td>{rowKey}</td>
-                        {Object.keys(tableData[rowKey]).map((columnKey) => (
-                            <td key={columnKey} style={{ color: 'black' }}>{tableData[rowKey][columnKey]}</td>
-                        ))}
-                    </tr>
-                ))}
-            </tbody>
-        );
-    };
+  const renderHeader = () => {
+    const tree = buildHeaderTree();
+    const maxDepth = columns.length;
+    const headerRows = maxDepth > 0 ? renderHeaderRows(tree, 0, maxDepth) : [];
 
     return (
-        <div className="pivot-table">
-            <table>
-                {renderTableHeader()}
-                {renderTableBody()}
-            </table>
-        </div>
+      <thead>
+        {headerRows.map((row, i) => (
+          <tr key={`header-row-${i}`} className="col-header">
+            {i === 0 &&
+              rows.map((r) => (
+                <th key={`row-header-${r}`} rowSpan={headerRows.length + 1}>
+                  {r}
+                </th>
+              ))}
+            {row}
+            {i === 0 &&
+              values.flatMap(({ field, aggregations }) =>
+                aggregations.map((agg) => (
+                  <th key={`total-${field}-${agg}`} rowSpan={headerRows.length + 1}>
+                    Total {field} ({agg})
+                  </th>
+                ))
+              )}
+          </tr>
+        ))}
+
+        {maxDepth === 0 && (
+          <tr className="col-header">
+            {rows.map((r) => (
+              <th key={`row-header-${r}`}>{r}</th>
+            ))}
+            {colKeys.flatMap((colKey) =>
+              values.flatMap(({ field, aggregations }) =>
+                aggregations.map((agg) => (
+                  <th key={`${colKey}-${field}-${agg}`}>
+                    {field} ({agg})
+                  </th>
+                ))
+              )
+            )}
+            {values.flatMap(({ field, aggregations }) =>
+              aggregations.map((agg) => (
+                <th key={`total-${field}-${agg}`}>
+                  Total {field} ({agg})
+                </th>
+              ))
+            )}
+          </tr>
+        )}
+
+        {maxDepth > 0 && (
+          <tr>
+            {colKeys.flatMap((colKey) =>
+              values.flatMap(({ field, aggregations }) =>
+                aggregations.map((agg) => (
+                  <th className="agg-header" key={`${colKey}-${field}-${agg}`}>
+                    {field} ({agg})
+                  </th>
+                ))
+              )
+            )}
+          </tr>
+        )}
+      </thead>
     );
-}
+  };
+
+  const renderBody = () => {
+    return rowKeys.sort().map((rowKeyStr) => {
+      const { rowKey, cols } = grouped[rowKeyStr];
+      const rowAggTotals = {};
+
+      return (
+        <tr key={rowKeyStr}>
+          {rowKey.map((value, i) => (
+            <td key={`${rowKeyStr}-row-${i}`}>{value}</td>
+          ))}
+          {colKeys.flatMap((colKey) =>
+            values.flatMap(({ field, aggregations }) =>
+              aggregations.map((agg) => {
+                const cellValues = cols[colKey]?.[field] || [];
+                const val = getAggregatedValue(cellValues, agg);
+                const key = `${field}-${agg}`;
+                rowAggTotals[key] = (rowAggTotals[key] || 0) + (Number.isFinite(val) ? val : 0);
+                return (
+                  <td key={`${rowKeyStr}-${colKey}-${field}-${agg}`}>
+                    {Number.isFinite(val) && val !== 0 ? val.toFixed(2) : ""}
+                  </td>
+                );
+              })
+            )
+          )}
+          {values.flatMap(({ field, aggregations }) =>
+            aggregations.map((agg) => {
+              const key = `${field}-${agg}`;
+              const val = rowAggTotals[key];
+              return (
+                <td key={`row-total-${rowKeyStr}-${key}`}>
+                  <strong>{val !== 0 ? val.toFixed(2) : ""}</strong>
+                </td>
+              );
+            })
+          )}
+        </tr>
+      );
+    });
+  };
+
+  const renderGrandTotal = () => {
+    const colAggTotals = {};
+
+    return (
+      <tr>
+        {rows.length > 0 ? (
+          <td colSpan={rows.length}><strong>Total</strong></td>
+        ) : null}
+        {colKeys.flatMap((colKey) =>
+          values.flatMap(({ field, aggregations }) =>
+            aggregations.map((agg) => {
+              const key = `${field}-${agg}`;
+              const totalValues = [];
+
+              for (const rowKey of rowKeys) {
+                const vals = grouped[rowKey].cols[colKey]?.[field] || [];
+                totalValues.push(...vals);
+              }
+
+              const val = getAggregatedValue(totalValues, agg);
+              colAggTotals[key] = (colAggTotals[key] || 0) + (Number.isFinite(val) ? val : 0);
+
+              return (
+                <td key={`grand-${colKey}-${field}-${agg}`}>
+                  <strong>{Number.isFinite(val) && val !== 0 ? val.toFixed(2) : ""}</strong>
+                </td>
+              );
+            })
+          )
+        )}
+        {values.flatMap(({ field, aggregations }) =>
+          aggregations.map((agg) => {
+            const key = `${field}-${agg}`;
+            const val = colAggTotals[key];
+            return (
+              <td key={`grand-total-${key}`}>
+                <strong>{val !== 0 ? val.toFixed(2) : ""}</strong>
+              </td>
+            );
+          })
+        )}
+      </tr>
+    );
+  };
+
+  return (
+    <table
+      border={1}
+      cellPadding={5}
+      className="pivot-table"
+    >
+      {renderHeader()}
+      <tbody>
+        {renderBody()}
+        {renderGrandTotal()}
+      </tbody>
+    </table>
+  );
+};
 
 export default PivotTable;
