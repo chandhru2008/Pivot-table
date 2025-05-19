@@ -1,4 +1,4 @@
-import PivotTable from "./components/PivotTable"
+import PivotTable from "./components/PivotTable";
 import FileUpload from "./components/FileUpload"
 import Sidebar from "./components/SideBar"
 import "./index.css";

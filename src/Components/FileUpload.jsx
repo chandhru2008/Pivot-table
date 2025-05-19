@@ -1,4 +1,3 @@
-import React from "react";
 import Papa from "papaparse";
 
 const FileUpload = ({
@@ -32,7 +31,7 @@ const FileUpload = ({
           types[field] = !isNaN(Number(sample)) ? "number" : "string";
         }
 
-        // ✅ Reset
+        //  Reset
         setRows([]);
         setColumns([]);
         setValues([]);

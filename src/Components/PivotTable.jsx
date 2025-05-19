@@ -1,5 +1,3 @@
-import React from "react";
-
 const aggregators = {
   Sum: (arr) => arr.reduce((a, b) => a + b, 0),
   Average: (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0),
