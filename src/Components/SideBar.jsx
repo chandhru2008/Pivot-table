@@ -1,4 +1,3 @@
-import React from "react";
 import AggregationSelector from "./AggregationSelector";
 import DragDropArea from "./DrageAndDropArea";
 

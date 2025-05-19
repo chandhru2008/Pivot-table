@@ -1,6 +1,6 @@
-import PivotTable from "./components/PivotTable";
-import FileUpload from "./components/FileUpload"
-import Sidebar from "./components/SideBar"
+import PivotTable from "./components/PivotTable.jsx";
+import FileUpload from "./components/FileUpload.jsx"
+import Sidebar from "./components/SideBar.jsx"
 import "./index.css";
 import { useState } from "react";
 
